@@ -3,72 +3,81 @@
 
 # In[1]:
 
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import cv2
 import numpy as np
-get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().magic('matplotlib inline')
 
 
 # In[2]:
 
-
-filein = pd.read_csv('./data/driving_log.csv')
+filein = pd.read_csv('./data/both.csv')
 
 
 # In[3]:
 
-
 from os import listdir
 
-paths = []
-parent = 'data/IMG/'
-filenames = listdir('data/IMG/')
+paths_forward = []
+parent_forward = 'data/IMG/'
+filenames_forward = listdir('data/IMG/')
 
 
 # In[4]:
 
-
-for file in filenames:
-    paths.append(parent + file)
+paths_backward = []
+parent_backward = 'data/data_backward/IMG/'
+filenames_backward = listdir('data/data_backward/IMG/')
 
 
 # In[5]:
 
-# Get left images
+for file in filenames_forward:
+    paths_forward.append(parent_forward + file)
+
+
+# In[6]:
+
+for file in filenames_backward:
+    paths_backward.append(parent_backward + file)
+
+
+# In[7]:
+
+paths = paths_forward + paths_backward
+
+
+# In[8]:
+
 left = []
 for each in paths:
     if 'left' in each.split('/')[-1]:
         left.append(each)
 
 
-# In[6]:
+# In[9]:
 
-# Get center images
 center = []
 for each in paths:
     if 'center' in each.split('/')[-1]:
         center.append(each)
 
 
-# In[7]:
+# In[10]:
 
-# Get right images
 right = []
 for each in paths:
     if 'right' in each.split('/')[-1]:
         right.append(each)
 
 
-# In[8]:
-
+# In[11]:
 
 steering = np.array(filein['STEERING'])
 
 
-# In[23]:
-
+# In[12]:
 
 images = []
 y_train = []
@@ -87,7 +96,6 @@ for left_img, center_img, right_img, label in zip(left, center, right, steering)
         images.append(cv2.flip(cen,1))
         y_train.append(-label)
         
-# Choosing left and right images with a correction of (+)(-)0.3
     lhs = plt.imread(left_img)
     images.append(lhs)
     y_train.append(label + 0.3)
@@ -97,30 +105,36 @@ for left_img, center_img, right_img, label in zip(left, center, right, steering)
     y_train.append(label - 0.3)
 
 
-# In[24]:
-
+# In[13]:
 
 X_train = np.array(images)
 y_train = np.array(y_train)
 
 
-# In[27]:
+# In[14]:
 
+X_train.shape
+
+
+# In[15]:
+
+y_train.shape
+
+
+# In[16]:
 
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten, Lambda, Cropping2D, MaxPooling2D
+from keras.layers import Dropout, Dense, Conv2D, Flatten, Lambda, Cropping2D, MaxPooling2D
 from keras import regularizers
 from keras.optimizers import Adam
 
 
-# In[28]:
-
+# In[17]:
 
 adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.01)
 
 
-# In[29]:
-
+# In[18]:
 
 model = Sequential()
 model.add(Cropping2D(cropping = ((60, 20),(0,0)), input_shape = (160, 320, 3)))
@@ -134,15 +148,42 @@ model.add(Conv2D(64, (3, 3), activation = 'relu', kernel_regularizer = regulariz
 model.add(MaxPooling2D(data_format = "channels_last"))
 model.add(Flatten())
 model.add(Dense(100, kernel_regularizer = regularizers.l2(0.01)))
+model.add(Dropout(0.5))
 model.add(Dense(50, kernel_regularizer = regularizers.l2(0.01)))
+model.add(Dropout(0.5))
 model.add(Dense(10, kernel_regularizer = regularizers.l2(0.01)))
 model.add(Dense(1))
 
 
-# In[30]:
-
+# In[19]:
 
 model.compile(loss = 'mse', optimizer = adam)
 model.fit(X_train, y_train, batch_size = 64, validation_split = 0.2, shuffle = True, epochs = 20, verbose = 1)
-model.save('model.h5')
+model.save('models/new_nvidia_w_dropout.h5')
+model.summary()
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
 
